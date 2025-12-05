@@ -1,0 +1,672 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>LKR Library - Colorful Edition</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #FFF7E0;
+    padding: 20px;
+}
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+.card {
+    background: #ffffff;
+    padding: 18px;
+    border-radius: 8px; 
+    margin-bottom: 16px;
+    border: 1px solid #FFD1A6;
+    box-shadow: 0 4px 12px rgba(255,165,0,0.1); 
+}
+.header {
+    background: #C0E8E8;
+}
+h1 {
+    font-size: 1.8em;
+    margin-bottom: 6px;
+    color: #00796B;
+}
+h3, h4, h5 { 
+    color: #4CAF50;
+}
+label {
+    font-weight: 600;
+    color: #4CAF50;
+}
+input, select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #FFAB91;
+    border-radius: 6px;
+    box-sizing: border-box; 
+}
+button {
+    padding: 10px 15px;
+    border: none;
+    background: #4CAF50;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.3s;
+}
+button:hover {
+    background: #388E3C;
+}
+button.deny {
+    background: #f44336;
+}
+button.deny:hover {
+    background: #d32f2f;
+}
+.book-card {
+    background: #E8F5E9;
+    padding: 15px;
+    border: 1px solid #A5D6A7;
+    border-radius: 6px;
+    flex: 1 1 calc(33.33% - 10px); 
+    min-width: 250px;
+}
+.request-card {
+    background: #FFF9C4;
+    padding: 15px;
+    border: 1px solid #FFF176;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+.request-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: bold;
+    margin-right: 8px;
+}
+.badge-checkout {
+    background: #BBDEFB;
+    color: #1976D2;
+}
+.badge-return {
+    background: #C8E6C9;
+    color: #388E3C;
+}
+.message.success {
+    background: #D4EDDA;
+    color: #155724;
+    border: 1px solid #C3E6CB;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+.message.error {
+    background: #F8D7DA;
+    color: #721C24;
+    border: 1px solid #F5C6CB;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+.hidden { display:none; }
+.small { font-size:0.9em;color:#6C7A89; }
+.book-grid { display:flex; flex-wrap:wrap; gap:15px; } 
+.analytics-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 10px; }
+.analytic-stat { 
+    background: #F3E5F5;
+    padding: 15px; 
+    border-radius: 6px; 
+    text-align: center; 
+    border: 1px solid #E1BEE7; 
+}
+.analytic-stat .value { font-size: 2.2em; font-weight: bold; color: #9C27B0; }
+.analytic-stat .label { font-size: 0.9em; color: #7B1FA2; }
+.overdue { color: red; font-weight: bold; }
+.pending-notice {
+    background: #FFF9C4;
+    border: 1px solid #FFF176;
+    padding: 8px 12px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 5px;
+    font-size: 0.9em;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+  <div class="card header">
+    <h1>LKR Library System 📚</h1>
+  </div>
+
+  <div id="authSection" class="card">
+    <h3>Login / Register</h3>
+    <label>Username</label>
+    <input id="authUsername">
+
+    <label style="margin-top:6px;">Password</label>
+    <input id="authPassword" type="password">
+
+    <label style="margin-top:6px;">Email (Optional)</label>
+    <input id="authEmail">
+
+    <div style="margin-top:10px">
+        <button onclick="login()">Login</button>
+        <button onclick="register()" style="margin-left:8px;">Register</button>
+        <button onclick="guest()" style="margin-left:8px;">Browse as Guest</button>
+    </div>
+
+    <div id="authMessage"></div>
+  </div>
+
+  <div id="mainApp" class="hidden">
+
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+        <strong id="currentUsername" style="color:#00796B;font-size:1.1em;"></strong>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <div id="librarianDashboard" class="card hidden">
+      <h4>Librarian Dashboard</h4>
+
+      <div style="margin-bottom:10px;">
+          <button onclick="showStats()" style="margin-right:8px">System Stats</button>
+          <button onclick="showAnalytics()" style="margin-right:8px">Analytics Dashboard</button>
+          <button onclick="showPendingRequests()">Pending Requests</button>
+      </div>
+      
+      <div id="statsSection">
+        <h5 style="margin-top:10px">System Overview</h5>
+        <div>Total books: <span id="statTotalBooks">0</span></div>
+        <div>Active checkouts: <span id="statActiveCheckouts">0</span></div>
+        <div class="overdue">Overdue: <span id="statOverdue">0</span></div>
+        <div>Total Registered Users: <span id="statTotalUsers">0</span></div>
+        <div style="margin-top:8px; font-weight:bold; color:#FF9800;">Pending Requests: <span id="statPendingRequests">0</span></div>
+      </div>
+      
+      <div id="analyticsSection" class="hidden">
+        <h5 style="margin-top:10px">Analytics Dashboard</h5>
+        
+        <div class="analytics-grid">
+            <div class="analytic-stat">
+                <div class="value" id="analyticActiveUsers">0</div>
+                <div class="label">Users Currently Borrowing</div>
+            </div>
+            <div class="analytic-stat">
+                <div class="value" id="analyticTotalFines">$0.00</div>
+                <div class="label">Total Fines Collected</div>
+            </div>
+        </div>
+
+        <h5 style="margin-top:15px">Most Borrowed Books (Top 5)</h5>
+        <div id="mostBorrowedList">Loading...</div>
+
+        <h5 style="margin-top:15px">All Borrowed Books</h5>
+        <div id="borrowedBooksTable" style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+            <thead>
+              <tr style="background:#E8F5E9; text-align:left;">
+                <th style="padding:10px; border:1px solid #A5D6A7;">User</th>
+                <th style="padding:10px; border:1px solid #A5D6A7;">Book Title</th>
+                <th style="padding:10px; border:1px solid #A5D6A7;">Author</th>
+                <th style="padding:10px; border:1px solid #A5D6A7;">Checkout Date</th>
+                <th style="padding:10px; border:1px solid #A5D6A7;">Due Date</th>
+              </tr>
+            </thead>
+            <tbody id="borrowedBooksBody">
+              <tr><td colspan="5" style="padding:10px; text-align:center;">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h5 style="margin-top:15px; color:#f44336;">Overdue Books</h5>
+        <div id="overdueBooksTable" style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+            <thead>
+              <tr style="background:#FFCDD2; text-align:left;">
+                <th style="padding:10px; border:1px solid #EF9A9A;">User</th>
+                <th style="padding:10px; border:1px solid #EF9A9A;">Book Title</th>
+                <th style="padding:10px; border:1px solid #EF9A9A;">Author</th>
+                <th style="padding:10px; border:1px solid #EF9A9A;">Due Date</th>
+                <th style="padding:10px; border:1px solid #EF9A9A;">Days Overdue</th>
+                <th style="padding:10px; border:1px solid #EF9A9A;">Fine</th>
+              </tr>
+            </thead>
+            <tbody id="overdueBooksBody">
+              <tr><td colspan="6" style="padding:10px; text-align:center;">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="pendingRequestsSection" class="hidden">
+        <h5 style="margin-top:10px">Pending Requests</h5>
+        <div id="pendingRequestsList"></div>
+      </div>
+
+      <h4 style="margin-top:15px">Add New Book</h4>
+
+      <input id="newBookTitle" placeholder="Title">
+      <input id="newBookAuthor" placeholder="Author" style="margin-top:6px">
+      <input id="newBookISBN" placeholder="ISBN (optional)" style="margin-top:6px">
+      <input id="newBookCopies" type="number" value="1" style="margin-top:6px" min="1">
+
+      <button onclick="addBook()" style="margin-top:6px">Add Book to Library</button>
+
+      <div id="addBookMessage"></div>
+    </div>
+
+    <div class="card">
+      <h4>Available Books</h4>
+      <div id="booksGrid" class="book-grid"></div>
+    </div>
+
+    <div id="myCheckoutsSection" class="card hidden">
+      <h4>My Checkouts</h4>
+      <div id="myCheckoutsGrid" class="book-grid"></div>
+    </div>
+
+    <div id="myRequestsSection" class="card hidden">
+      <h4>My Pending Requests</h4>
+      <div id="myRequestsGrid"></div>
+    </div>
+
+    <div id="actionMessage"></div>
+  </div>
+
+</div>
+
+<script>
+let currentUser=null, currentRole=null;
+
+function showMessage(id,msg,err=false){
+  const el=document.getElementById(id);
+  el.innerHTML='<div class="message '+(err?'error':'success')+'">'+msg+'</div>';
+  setTimeout(()=>{el.innerHTML=''},4000);
+}
+
+async function login(){
+  const u=document.getElementById('authUsername').value;
+  const p=document.getElementById('authPassword').value;
+
+  const r=await fetch('/api/login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:u,password:p})
+  });
+
+  const d=await r.json();
+  if(d.success){
+    currentUser=u;
+    currentRole=d.role;
+    showMain();
+  } else {
+    showMessage('authMessage',d.message,true);
+  }
+}
+
+async function register(){
+  const u=document.getElementById('authUsername').value;
+  const p=document.getElementById('authPassword').value;
+  const e=document.getElementById('authEmail').value;
+
+  const r=await fetch('/api/register',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:u,password:p,email:e})
+  });
+
+  const d=await r.json();
+  showMessage('authMessage',d.success?'Registered! Please login now.':d.message,!d.success);
+}
+
+function guest(){
+  currentUser=null;
+  currentRole='guest';
+  document.getElementById('myCheckoutsSection').classList.add('hidden');
+  document.getElementById('myRequestsSection').classList.add('hidden'); 
+  showMain();
+}
+
+function logout(){
+  currentUser=null;
+  currentRole=null;
+  document.getElementById('authSection').classList.remove('hidden');
+  document.getElementById('mainApp').classList.add('hidden');
+}
+
+function showMain(){
+  document.getElementById('authSection').classList.add('hidden');
+  document.getElementById('mainApp').classList.remove('hidden');
+  document.getElementById('currentUsername').textContent='Logged in as: '+(currentUser||'Guest');
+
+  if(currentRole==='librarian'){
+    document.getElementById('librarianDashboard').classList.remove('hidden');
+    document.getElementById('myCheckoutsSection').classList.add('hidden');
+    document.getElementById('myRequestsSection').classList.add('hidden');
+    showStats(); 
+  } else if (currentRole === 'user') {
+    document.getElementById('librarianDashboard').classList.add('hidden');
+    document.getElementById('myCheckoutsSection').classList.remove('hidden');
+    document.getElementById('myRequestsSection').classList.remove('hidden');
+    loadMyCheckouts();
+    loadMyRequests();
+  } else {
+     document.getElementById('librarianDashboard').classList.add('hidden');
+     document.getElementById('myCheckoutsSection').classList.add('hidden');
+     document.getElementById('myRequestsSection').classList.add('hidden');
+  }
+
+  loadBooks();
+}
+
+function showStats() {
+    document.getElementById('statsSection').classList.remove('hidden');
+    document.getElementById('analyticsSection').classList.add('hidden');
+    document.getElementById('pendingRequestsSection').classList.add('hidden');
+    loadStats();
+}
+
+function showAnalytics() {
+    document.getElementById('statsSection').classList.add('hidden');
+    document.getElementById('analyticsSection').classList.remove('hidden');
+    document.getElementById('pendingRequestsSection').classList.add('hidden');
+    loadAnalytics();
+}
+
+function showPendingRequests() {
+    document.getElementById('statsSection').classList.add('hidden');
+    document.getElementById('analyticsSection').classList.add('hidden');
+    document.getElementById('pendingRequestsSection').classList.remove('hidden');
+    loadPendingRequests();
+}
+
+async function loadBooks(){
+  const r=await fetch('/api/books');
+  const books=await r.json();
+  const grid=document.getElementById('booksGrid');
+  grid.innerHTML='';
+
+  books.forEach(b=>{
+    const card=document.createElement('div');
+    card.className='book-card';
+
+    card.innerHTML = '<b>'+b.title+'</b><div class="small">by '+b.author+'</div><div style="margin-top:5px;">Available: <strong>'+b.available_copies+'</strong></div>';
+
+    if(currentRole==='user'){
+      const btn=document.createElement('button');
+      btn.textContent='Request Checkout';
+      btn.style.marginTop='8px';
+      btn.disabled = b.available_copies <= 0;
+      if (b.available_copies <= 0) {
+        btn.textContent = 'Out of Stock';
+        btn.style.backgroundColor = '#FFAB91';
+        btn.style.cursor = 'not-allowed';
+      }
+      btn.onclick=()=>requestCheckout(b.id);
+      card.appendChild(btn);
+    }
+
+    grid.appendChild(card);
+  });
+}
+
+async function requestCheckout(id){
+  const r=await fetch('/api/request_checkout',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({book_id:id})
+  });
+
+  const d=await r.json();
+
+  if(d.success){
+    showMessage('actionMessage', d.message);
+  } else {
+    showMessage('actionMessage','Error: '+d.message,true);
+  }
+
+  loadBooks();
+  loadMyRequests();
+}
+
+async function requestReturn(id){
+  const r=await fetch('/api/request_return',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({book_id:id})
+  });
+
+  const d=await r.json();
+
+  if(d.success){
+    showMessage('actionMessage', d.message);
+  } else {
+    showMessage('actionMessage','Error: '+d.message,true);
+  }
+
+  loadMyCheckouts();
+  loadMyRequests();
+}
+
+async function loadMyCheckouts(){
+  if(!currentUser || currentRole !== 'user') return;
+  
+  const r=await fetch('/api/my_checkouts');
+  const list=await r.json();
+  const grid=document.getElementById('myCheckoutsGrid');
+  grid.innerHTML='';
+
+  if (list.length === 0) {
+    grid.innerHTML = '<div style="margin-left:5px;">You have no active checkouts.</div>';
+    return;
+  }
+
+  list.forEach(c=>{
+    const card=document.createElement('div');
+    card.className='book-card';
+    
+    let dueDateMsg = 'Due: '+c.due_date;
+    if (c.is_overdue) {
+        dueDateMsg = '<span class="overdue">OVERDUE!</span> ('+c.due_date+')';
+    }
+
+    card.innerHTML = '<b>'+c.book.title+'</b><div class="small">by '+c.book.author+'</div><div style="margin-top:5px;">'+dueDateMsg+'</div>';
+    
+    const btn = document.createElement('button');
+    btn.textContent = 'Request Return';
+    btn.style.marginTop = '8px';
+    btn.onclick = ()=>requestReturn(c.book_id);
+    card.appendChild(btn);
+    
+    grid.appendChild(card);
+  });
+}
+
+async function loadMyRequests(){
+  if(!currentUser || currentRole !== 'user') return;
+  
+  const r=await fetch('/api/my_requests');
+  const list=await r.json();
+  const grid=document.getElementById('myRequestsGrid');
+  grid.innerHTML='';
+
+  if (list.length === 0) {
+    grid.innerHTML = '<div style="margin-left:5px;">You have no pending requests.</div>';
+    return;
+  }
+
+  list.forEach(req=>{
+    const card=document.createElement('div');
+    card.className='request-card';
+    
+    const badge = req.request_type === 'checkout' ? 
+      '<span class="request-badge badge-checkout">CHECKOUT</span>' :
+      '<span class="request-badge badge-return">RETURN</span>';
+
+    card.innerHTML = badge+'<b>'+req.book_title+'</b><div class="small">by '+req.book_author+'</div><div class="small" style="margin-top:5px;">Requested: '+req.request_date+'</div><div class="pending-notice">⏳ Waiting for librarian approval</div>';
+    grid.appendChild(card);
+  });
+}
+
+async function loadPendingRequests(){
+  if(currentRole !== 'librarian') return;
+
+  const r=await fetch('/api/pending_requests');
+  const list=await r.json();
+  const container=document.getElementById('pendingRequestsList');
+  container.innerHTML='';
+
+  if (list.length === 0) {
+    container.innerHTML = '<div style="margin-left:5px;">No pending requests.</div>';
+    return;
+  }
+
+  list.forEach(req=>{
+    const card=document.createElement('div');
+    card.className='request-card';
+    
+    const badge = req.request_type === 'checkout' ? 
+      '<span class="request-badge badge-checkout">CHECKOUT</span>' :
+      '<span class="request-badge badge-return">RETURN</span>';
+
+    card.innerHTML = badge+'<b>'+req.book_title+'</b> by '+req.book_author+'<div class="small">Requested by: <strong>'+req.username+'</strong></div><div class="small">Date: '+req.request_date+'</div><div style="margin-top:10px;"><button onclick="approveRequest('+req.id+', \''+req.request_type+'\')">✓ Approve</button><button class="deny" onclick="denyRequest('+req.id+')" style="margin-left:8px;">✗ Deny</button></div>';
+    container.appendChild(card);
+  });
+}
+
+async function approveRequest(requestId, requestType){
+  const endpoint = requestType === 'checkout' ? '/api/approve_checkout' : '/api/approve_return';
+  
+  const r=await fetch(endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({request_id:requestId})
+  });
+
+  const d=await r.json();
+
+  if(d.success){
+    showMessage('actionMessage', requestType+' approved!');
+  } else {
+    showMessage('actionMessage','Error: '+d.message,true);
+  }
+
+  loadPendingRequests();
+  loadStats();
+  loadBooks();
+}
+
+async function denyRequest(requestId){
+  const r=await fetch('/api/deny_request',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({request_id:requestId})
+  });
+
+  const d=await r.json();
+
+  if(d.success){
+    showMessage('actionMessage', 'Request denied.');
+  } else {
+    showMessage('actionMessage','Error: '+d.message,true);
+  }
+
+  loadPendingRequests();
+  loadStats();
+}
+
+async function addBook(){
+  const title=document.getElementById('newBookTitle').value;
+  const author=document.getElementById('newBookAuthor').value;
+  const isbn=document.getElementById('newBookISBN').value;
+  const copies=document.getElementById('newBookCopies').value;
+  
+  if(!title || !author || !copies){
+      showMessage('addBookMessage','Error: Title, Author, and Copies are required.',true);
+      return;
+  }
+
+  const r=await fetch('/api/add_book',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({title,author,isbn,copies})
+  });
+
+  const d=await r.json();
+  showMessage('addBookMessage',d.success?'Added book: '+title:'Error: '+d.message,!d.success);
+  loadBooks();
+  loadStats();
+}
+
+async function loadStats(){
+  if(currentRole !== 'librarian') return;
+
+  const r=await fetch('/api/stats');
+  const d=await r.json();
+
+  document.getElementById('statTotalBooks').textContent=d.total_books;
+  document.getElementById('statActiveCheckouts').textContent=d.active_checkouts;
+  document.getElementById('statOverdue').textContent=d.overdue;
+  document.getElementById('statTotalUsers').textContent=d.total_users;
+  document.getElementById('statPendingRequests').textContent=d.pending_requests;
+}
+
+async function loadAnalytics(){
+  if(currentRole !== 'librarian') return;
+
+  const r=await fetch('/api/analytics');
+  const d=await r.json();
+
+  document.getElementById('analyticActiveUsers').textContent=d.active_user_count || 0;
+  document.getElementById('analyticTotalFines').textContent='$'+(d.total_fines ? d.total_fines.toFixed(2) : '0.00');
+
+  const listEl=document.getElementById('mostBorrowedList');
+  listEl.innerHTML=''; 
+
+  if (d.most_borrowed && d.most_borrowed.length > 0) {
+    const ul = document.createElement('ul');
+    d.most_borrowed.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item.title+' (Borrowed '+item.times+' times)';
+        ul.appendChild(li);
+    });
+    listEl.appendChild(ul);
+  } else {
+     listEl.textContent = 'No books have been borrowed yet.';
+  }
+
+  const borrowedBody = document.getElementById('borrowedBooksBody');
+  borrowedBody.innerHTML = '';
+
+  if (d.borrowed_books && d.borrowed_books.length > 0) {
+    d.borrowed_books.forEach(book => {
+      const row = document.createElement('tr');
+      row.innerHTML = '<td style="padding:10px; border:1px solid #ddd;">'+book.username+'</td><td style="padding:10px; border:1px solid #ddd;">'+book.book_title+'</td><td style="padding:10px; border:1px solid #ddd;">'+book.book_author+'</td><td style="padding:10px; border:1px solid #ddd;">'+book.checkout_date+'</td><td style="padding:10px; border:1px solid #ddd;">'+book.due_date+'</td>';
+      borrowedBody.appendChild(row);
+    });
+  } else {
+    borrowedBody.innerHTML = '<tr><td colspan="5" style="padding:10px; text-align:center;">No books currently borrowed.</td></tr>';
+  }
+
+  const overdueBody = document.getElementById('overdueBooksBody');
+  overdueBody.innerHTML = '';
+
+  if (d.overdue_books && d.overdue_books.length > 0) {
+    d.overdue_books.forEach(book => {
+      const row = document.createElement('tr');
+      row.innerHTML = '<td style="padding:10px; border:1px solid #ddd;">'+book.username+'</td><td style="padding:10px; border:1px solid #ddd;">'+book.book_title+'</td><td style="padding:10px; border:1px solid #ddd;">'+book.book_author+'</td><td style="padding:10px; border:1px solid #ddd;">'+book.due_date+'</td><td style="padding:10px; border:1px solid #ddd; font-weight:bold; color:#f44336;">'+book.days_overdue+' days</td><td style="padding:10px; border:1px solid #ddd; font-weight:bold; color:#f44336;">$'+book.fine.toFixed(2)+'</td>';
+      overdueBody.appendChild(row);
+    });
+  } else {
+    overdueBody.innerHTML = '<tr><td colspan="6" style="padding:10px; text-align:center;">No overdue books! 🎉</td></tr>';
+  }
+}
+
+</script>
+</body>
+</html>

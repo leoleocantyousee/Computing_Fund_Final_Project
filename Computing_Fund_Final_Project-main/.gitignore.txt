@@ -1,0 +1,13 @@
+# Python Caching
+__pycache__/
+
+# Anaconda/Spyder environments
+.anaconda/
+.spyder-py3/
+
+# Flask/OS files
+*.pyc
+.DS_Store
+
+# The local data file
+library_data_simple.json
