@@ -3,19 +3,17 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 from collections import Counter
 
-# Setting up the Flask app
+# Flask app setup
 app = Flask(__name__)
 app.secret_key = 'library-secret-key-student-2024'
 
-# Configure SQLite database
+# Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///library.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Initialize database
 db = SQLAlchemy(app)
 
-# --- Database Models (Unchanged) ---
-# ... (User, Book, Checkout, Fine, PendingRequest, Settings classes remain the same) ...
+# Database Models
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -63,11 +61,11 @@ class Fine(db.Model):
 class PendingRequest(db.Model):
     __tablename__ = 'pending_requests'
     id = db.Column(db.Integer, primary_key=True)
-    request_type = db.Column(db.String(20), nullable=False)  # 'checkout' or 'return'
+    request_type = db.Column(db.String(20), nullable=False)  # checkout or return
     username = db.Column(db.String(80), db.ForeignKey('users.username'), nullable=False)
     book_id = db.Column(db.Integer, db.ForeignKey('books.id'), nullable=False)
     request_date = db.Column(db.String(20), nullable=False)
-    status = db.Column(db.String(20), default='pending')  # 'pending', 'approved', 'denied'
+    status = db.Column(db.String(20), default='pending')  # pending, approved, denied
     
     user = db.relationship('User', backref='requests', lazy=True)
     book = db.relationship('Book', backref='requests', lazy=True)
@@ -79,17 +77,16 @@ class Settings(db.Model):
     value = db.Column(db.String(200))
 
 
-# --- Initialization Functions (Unchanged) ---
+# System initialization
 
 def initialize_system():
-    """Create tables on startup"""
+    """Create tables and populate with default data if empty"""
     with app.app_context():
         db.create_all()
         print("Database tables ready!")
         
-        # Optional: Check if database is empty and needs default data
         if User.query.count() == 0:
-            # Add default users
+            # Default users
             admin = User(username='admin', password='admin123', 
                          role='librarian', email='admin@library.com')
             john = User(username='john_doe', password='password123', 
@@ -98,7 +95,7 @@ def initialize_system():
             db.session.add(admin)
             db.session.add(john)
             
-            # Add default books
+            # Default books
             books = [
                 Book(id=1, title="Harry Potter", author="J.K. Rowling", 
                      isbn="9780439708180", total_copies=3, available_copies=3),
@@ -111,7 +108,7 @@ def initialize_system():
             for book in books:
                 db.session.add(book)
             
-            # Add default settings
+            # Default settings
             setting = Settings(key='days_to_borrow', value='30')
             db.session.add(setting)
             
@@ -120,14 +117,14 @@ def initialize_system():
 
 
 def calculate_due_date():
-    """Calculate the due date based on settings (default 30 days = 1 month)"""
+    """Calculate due date from settings (default 30 days)"""
     setting = Settings.query.filter_by(key='days_to_borrow').first()
     days = int(setting.value) if setting else 30
     return (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
 
 
 def calculate_fine(due_date_string):
-    """Calculate fine for overdue books"""
+    """Calculate fine at $0.50 per day overdue"""
     due_date = datetime.strptime(due_date_string, "%Y-%m-%d")
     today = datetime.now()
     
@@ -138,17 +135,17 @@ def calculate_fine(due_date_string):
     return 0.0
 
 
-# --- Flask Routes ---
+# Routes
 
 @app.route('/')
 def home():
-    # Assuming 'website.html' is correctly rendered, though HTML part is not included here
     return render_template('website.html')
 
 
+# Authentication routes
+
 @app.route('/api/login', methods=['POST'])
 def api_login():
-    # Logic remains unchanged
     data = request.json or {}
     u = data.get('username')
     p = data.get('password')
@@ -167,7 +164,7 @@ def api_login():
 
 @app.route('/api/register', methods=['POST'])
 def api_register():
-    """Register a new user with validation checks."""
+    """Register new user with validation"""
     data = request.json or {}
     u = data.get('username')
     p = data.get('password')
@@ -179,13 +176,13 @@ def api_register():
     if User.query.filter_by(username=u).first():
         return jsonify({'success': False, 'message': 'Username exists'})
 
-    # 1. Password Complexity Check: Min 8 chars and must contain a capital letter
+    # Password validation: minimum 8 characters and one capital letter
     if len(p) < 8:
         return jsonify({'success': False, 'message': 'Password must be at least 8 characters long.'})
     if not any(c.isupper() for c in p):
         return jsonify({'success': False, 'message': 'Password must include at least one capital letter.'})
 
-    # 2. Email Format Check (simple)
+    # Email validation
     if e and '@' not in e:
         return jsonify({'success': False, 'message': 'Invalid email format.'})
 
@@ -196,9 +193,10 @@ def api_register():
     return jsonify({'success': True})
 
 
+# Book catalog
+
 @app.route('/api/books')
 def api_books():
-    # Logic remains unchanged
     books = Book.query.all()
     return jsonify([{
         'id': b.id,
@@ -211,9 +209,11 @@ def api_books():
     } for b in books])
 
 
+# User checkout and return requests
+
 @app.route('/api/request_checkout', methods=['POST'])
 def api_request_checkout():
-    """User requests to checkout a book - includes 5 book limit check."""
+    """Submit checkout request with 5 book limit enforcement"""
     data = request.json or {}
     book_id = data.get('book_id')
     username = session.get('username')
@@ -225,13 +225,13 @@ def api_request_checkout():
     if not book or book.available_copies <= 0:
         return jsonify({'success': False, 'message': 'Book unavailable'})
 
-    # 3. Checkout Limit Check: Users limited to 5 active books
+    # Check 5 book checkout limit
     MAX_CHECKOUTS = 5
     active_count = Checkout.query.filter_by(username=username, returned=False).count()
     if active_count >= MAX_CHECKOUTS:
         return jsonify({'success': False, 'message': f'You have reached the limit ({MAX_CHECKOUTS} books)'})
 
-    # Check if there's already a pending request for this book by this user
+    # Check for duplicate pending requests
     existing = PendingRequest.query.filter_by(
         username=username, 
         book_id=book_id, 
@@ -259,7 +259,7 @@ def api_request_checkout():
 
 @app.route('/api/request_return', methods=['POST'])
 def api_request_return():
-    # Logic remains unchanged
+    """Submit return request"""
     data = request.json or {}
     book_id = data.get('book_id')
     username = session.get('username')
@@ -267,7 +267,7 @@ def api_request_return():
     if not username:
         return jsonify({'success': False, 'message': 'Not logged in'})
 
-    # Check if user has this book checked out
+    # Verify active checkout exists
     checkout = Checkout.query.filter_by(
         book_id=book_id, username=username, returned=False
     ).first()
@@ -275,7 +275,7 @@ def api_request_return():
     if not checkout:
         return jsonify({'success': False, 'message': 'You do not have this book checked out'})
 
-    # Check if there's already a pending return request
+    # Check for duplicate pending requests
     existing = PendingRequest.query.filter_by(
         username=username, 
         book_id=book_id, 
@@ -301,9 +301,11 @@ def api_request_return():
     return jsonify({'success': True, 'message': 'Return request submitted! Waiting for librarian confirmation.'})
 
 
+# Librarian request management
+
 @app.route('/api/pending_requests')
 def api_pending_requests():
-    # Logic remains unchanged
+    """Get all pending requests for librarian"""
     username = session.get('username')
     user = User.query.filter_by(username=username).first()
 
@@ -330,7 +332,7 @@ def api_pending_requests():
 
 @app.route('/api/approve_checkout', methods=['POST'])
 def api_approve_checkout():
-    # Logic remains unchanged
+    """Approve checkout request and create checkout record"""
     data = request.json or {}
     request_id = data.get('request_id')
     username = session.get('username')
@@ -349,7 +351,7 @@ def api_approve_checkout():
         db.session.commit()
         return jsonify({'success': False, 'message': 'Book no longer available'})
 
-    # Create the actual checkout
+    # Create checkout record
     checkout = Checkout(
         book_id=pending.book_id,
         username=pending.username,
@@ -370,7 +372,7 @@ def api_approve_checkout():
 
 @app.route('/api/approve_return', methods=['POST'])
 def api_approve_return():
-    # Logic remains unchanged
+    """Approve return request and calculate fines"""
     data = request.json or {}
     request_id = data.get('request_id')
     username = session.get('username')
@@ -383,7 +385,7 @@ def api_approve_return():
     if not pending or pending.status != 'pending':
         return jsonify({'success': False, 'message': 'Request not found or already processed'})
 
-    # Find the checkout record
+    # Find checkout record
     checkout = Checkout.query.filter_by(
         book_id=pending.book_id, 
         username=pending.username, 
@@ -403,6 +405,7 @@ def api_approve_return():
     if book:
         book.available_copies += 1
 
+    # Record fine if overdue
     if fine > 0:
         fine_record = Fine(
             username=pending.username,
@@ -420,7 +423,7 @@ def api_approve_return():
 
 @app.route('/api/deny_request', methods=['POST'])
 def api_deny_request():
-    # Logic remains unchanged
+    """Deny pending request"""
     data = request.json or {}
     request_id = data.get('request_id')
     username = session.get('username')
@@ -439,9 +442,11 @@ def api_deny_request():
     return jsonify({'success': True})
 
 
+# User views
+
 @app.route('/api/my_checkouts')
 def api_my_checkouts():
-    # Logic remains unchanged
+    """Get active checkouts for logged in user"""
     username = session.get('username')
     if not username:
         return jsonify([])
@@ -473,7 +478,7 @@ def api_my_checkouts():
 
 @app.route('/api/my_requests')
 def api_my_requests():
-    # Logic remains unchanged
+    """Get pending requests for logged in user"""
     username = session.get('username')
     if not username:
         return jsonify([])
@@ -493,9 +498,11 @@ def api_my_requests():
     return jsonify(result)
 
 
+# Librarian management
+
 @app.route('/api/add_book', methods=['POST'])
 def api_add_book():
-    # Logic remains unchanged
+    """Add new book to catalog"""
     username = session.get('username')
     user = User.query.filter_by(username=username).first()
 
@@ -503,7 +510,7 @@ def api_add_book():
         return jsonify({'success': False, 'message': 'Librarian access only'})
 
     data = request.json or {}
-    
+
     new_book = Book(
         title=data.get('title', 'Unknown Title'),
         author=data.get('author', 'Unknown Author'),
@@ -521,7 +528,7 @@ def api_add_book():
 
 @app.route('/api/stats')
 def api_stats():
-    # Logic remains unchanged
+    """Get dashboard statistics for librarian"""
     username = session.get('username')
     user = User.query.filter_by(username=username).first()
 
@@ -530,6 +537,7 @@ def api_stats():
 
     active_checkouts = Checkout.query.filter_by(returned=False).all()
     
+    # Count overdue books
     overdue_count = 0
     for c in active_checkouts:
         due_date = datetime.strptime(c.due_date, "%Y-%m-%d")
@@ -549,13 +557,14 @@ def api_stats():
 
 @app.route('/api/analytics')
 def api_analytics():
-    # Logic remains unchanged
+    """Get detailed analytics for librarian"""
     username = session.get('username')
     user = User.query.filter_by(username=username).first()
 
     if not user or user.role != 'librarian':
         return jsonify({})
 
+    # Most borrowed books
     all_checkouts = Checkout.query.all()
     borrow_counts = Counter(c.book_id for c in all_checkouts)
     most_borrowed_ids = borrow_counts.most_common(5)
@@ -570,13 +579,15 @@ def api_analytics():
                 'times': count
             })
 
+    # Active users
     active_checkouts = Checkout.query.filter_by(returned=False).all()
     active_users = list(set(c.username for c in active_checkouts))
 
+    # Total fines
     all_fines = Fine.query.all()
     total_fines = sum(f.fine for f in all_fines)
 
-    # Get all currently borrowed books
+    # Currently borrowed books
     borrowed_books = []
     for checkout in active_checkouts:
         borrowed_books.append({
@@ -587,7 +598,7 @@ def api_analytics():
             'due_date': checkout.due_date
         })
 
-    # Get all overdue books
+    # Overdue books with fines
     overdue_books = []
     today = datetime.now().date()
     for checkout in active_checkouts:
@@ -612,7 +623,6 @@ def api_analytics():
     })
 
 
-# Start the system
 if __name__ == '__main__':
     initialize_system()
     app.run(debug=False, use_reloader=False)
